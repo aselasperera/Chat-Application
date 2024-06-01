@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -8,6 +9,58 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
+
+type Message struct {
+	Sender  string `json:"sender"`
+	Content string `json:"content"`
+}
+
+func main() {
+	app := fiber.New()
+
+	app.Use(func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) { // Returns true if the client requested upgrade to the WebSocket protocol
+			return c.Next()
+		}
+		return c.SendStatus(fiber.StatusUpgradeRequired)
+	})
+
+	app.Get("/ws/:id", websocket.New(func(c *websocket.Conn) {
+		defer func() {
+			unregister <- c
+			c.Close()
+		}()
+
+		id := c.Params("id")
+
+		register <- c
+
+		for {
+			messageType, message, err := c.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					fmt.Println("read error:", err)
+				}
+				return // Calls the deferred function, i.e. closes the connection on error
+			}
+
+			if messageType == websocket.TextMessage {
+				msg := Message{
+					Sender:  id,
+					Content: string(message),
+				}
+				msgBytes, _ := json.Marshal(msg)
+				broadcast <- string(msgBytes)
+			} else {
+				fmt.Println("websocket message received of type", messageType)
+			}
+		}
+	}))
+
+	go runHub()
+
+	log.Fatalln(app.Listen(":8000"))
+}
 
 type client struct {
 	isClosing bool
@@ -50,44 +103,4 @@ func runHub() {
 			fmt.Println("connection unregistered")
 		}
 	}
-}
-
-func main() {
-	app := fiber.New()
-
-	app.Use(func(c *fiber.Ctx) error {
-		if websocket.IsWebSocketUpgrade(c) {
-			return c.Next()
-		}
-		return c.SendStatus(fiber.StatusUpgradeRequired)
-	})
-
-	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
-		defer func() {
-			unregister <- c
-			c.Close()
-		}()
-
-		register <- c
-
-		for {
-			messageType, message, err := c.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					fmt.Println("read error:", err)
-				}
-				return
-			}
-
-			if messageType == websocket.TextMessage {
-				broadcast <- string(message)
-			} else {
-				fmt.Println("websocket message received of type", messageType)
-			}
-		}
-	}))
-
-	go runHub()
-
-	log.Fatalln(app.Listen(":8000"))
 }

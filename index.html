@@ -46,11 +46,18 @@
       margin: 0;
     }
     li {
-      background-color: #fff;
       padding: 10px;
       margin-bottom: 10px;
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .message-sent {
+      background-color: #e1ffc7;
+      text-align: right;
+    }
+    .message-received {
+      background-color: #f1f0f0;
+      text-align: left;
     }
   </style>
 </head>
@@ -64,18 +71,37 @@
     <ul id="messages"></ul>
   </div>
   <script>
+    const userId = Math.random().toString(36).substr(2, 9);
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
-    const ws = new WebSocket('ws://localhost:8000/ws');
 
-    ws.onmessage = (event) => {
+    // Establish a WebSocket connection to the server
+    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+
+    // Function to add a message to the chat window
+    function addMessage(message, type) {
       const li = document.createElement('li');
-      li.innerText = event.data;
+      li.innerText = message;
+      li.className = type;
       messages.appendChild(li);
+      messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+    }
+
+    // Receive incoming messages and add them to the chat window
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      const messageType = msg.sender === userId ? 'message-sent' : 'message-received';
+      addMessage(msg.content, messageType);
     };
 
-    const sendMessage = () => {
-      ws.send(input.value);
+    // Send user messages to the server
+    function sendMessage() {
+      const message = input.value;
+      const msg = {
+        sender: userId,
+        content: message
+      };
+      ws.send(JSON.stringify(msg));
       input.value = '';
     }
   </script>
