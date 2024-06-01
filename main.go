@@ -45,11 +45,14 @@ func main() {
 			}
 
 			if messageType == websocket.TextMessage {
-				msg := Message{
-					Sender:  id,
-					Content: string(message),
+				var receivedMsg Message
+				if err := json.Unmarshal(message, &receivedMsg); err != nil {
+					fmt.Println("unmarshal error:", err)
+					continue
 				}
-				msgBytes, _ := json.Marshal(msg)
+				receivedMsg.Sender = id // Ensure the sender is set to the correct ID
+
+				msgBytes, _ := json.Marshal(receivedMsg)
 				broadcast <- string(msgBytes)
 			} else {
 				fmt.Println("websocket message received of type", messageType)

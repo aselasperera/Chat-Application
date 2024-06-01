@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat App</title>
+  <title>Evolza Chat App</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -63,7 +63,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Chat App</h1>
+    <h1>Evolza Chat App</h1>
     <div class="input-group">
       <input id="input" type="text" placeholder="Type your message here">
       <button id="send-button" onclick="sendMessage()">Send</button>
@@ -79,9 +79,9 @@
     const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
 
     // Function to add a message to the chat window
-    function addMessage(message, type) {
+    function addMessage(content, type) {
       const li = document.createElement('li');
-      li.innerText = message;
+      li.innerText = content;
       li.className = type;
       messages.appendChild(li);
       messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
