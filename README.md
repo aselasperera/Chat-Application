@@ -3,10 +3,11 @@
 This is a simple real-time chat application built using Go Fiber and WebSockets for bidirectional communication between client and server. The front-end is a basic HTML file that communicates with the Go back-end server.
 
 ## Project Structure
+```
 chat-application/
 ├── main.go
 └── index.html
-
+```
 ## Prerequisites
 
 - Go (version 1.16 or higher)
